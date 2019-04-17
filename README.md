@@ -26,9 +26,6 @@ HaskIDE includes
 HaskIDE also saves your settings per project, which makes it easy to have custom build commands/IDE layouts for different projects.
 As all the source code is bash and vim script (and also well commented) so you should be able to tinker with it and add new features easily.
 
-## Screenshots
-To be added
-
 ## Installation (Linux)
 Pull the git repo and run 
 ```sh
@@ -64,3 +61,25 @@ For a simple setup using another language than Haskell: just change the syntax f
 Then you should be good to go ;)
 
 For further information on what and how to customize, see the wiki (under construction).
+
+## Credits
+Thanks to all the people on stackoverflow & co for their useful posts on how to use vim- and bash script ;)
+
+## Screenshots
+Opening a new project:
+![open project](/screenshots/open_project.png)
+
+Opening a file:
+![open file](screenshots/open_file.png)
+
+Searching files:
+![searching files](screenshots/file_search.png)
+
+Resizing the panes:
+![resize panes](screenshots/resize_panes.png)
+
+Linting info:
+![linting info](screenshots/linting_info.png)
+
+Lambda Goodness:
+![lambda goodness](screenshots/lambda_goodness.png)
