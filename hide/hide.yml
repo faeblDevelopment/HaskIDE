@@ -1,0 +1,31 @@
+# ~/.config/tmuxinator/hide.yml
+# file specifying the layout for the IDE-panes/windows
+# project config file for tmuxinator
+# https://github.com/tmuxinator/tmuxinator
+
+name: hide                          # project name
+root: ROOT                          # will be the root (initial) directory for all panes
+                                    # ROOT is replaced with SED by the IDE on
+                                    # launch
+tmux_options: -f ROOT.tmux.hs.conf  # configuration file for the instance
+
+# Specifies (by name or index) which window will be selected on project startup. If not set, the first window is used.
+# startup_window: editor
+
+# Specifies (by index) which pane of the specified window will be selected on project startup. If not set, the first pane is used.
+startup_pane: 1
+
+# Runs after everything. Use it to attach to tmux with custom options etc.
+# post: tmux -CC attach -t hide
+
+
+windows:
+  - ide:
+      layout: main-horizontal
+      # Synchronize all panes of this window, can be enabled before or after the pane commands run.
+      # 'before' represents legacy functionality and will be deprecated in a future release, in favour of 'after'
+      # synchronize: after
+      panes:
+        - cd ROOT && CMD                    # pane for the editor
+        - cd ROOT && echo "initialized"     # pane for the shell/build
+        - cd ROOT && stack ghci             # pane for ghci

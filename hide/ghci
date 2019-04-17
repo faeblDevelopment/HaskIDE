@@ -1,0 +1,10 @@
+-- sets the prompt for the GHCi REPL
+-- \EXC[0;36m, \EXC[1;33m and \ESC[m is for color information
+-- %s is for imported modules separated by space
+-- \n is a new line
+-- λ> is the actual prompt
+-- so your prompt will look like this when you have imported
+-- the library "Foo"
+-- Foo
+-- λ> 
+:set prompt "\ESC[0;36m%s\n\ESC[1;33mλ> \ESC[m"

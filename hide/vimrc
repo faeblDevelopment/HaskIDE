@@ -1,0 +1,146 @@
+" vimplug plugin manager fetch
+if empty(glob('~/.vim/autoload/plug.vim'))
+  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
+
+" Specify a directory for plugins
+" - For Neovim: ~/.local/share/nvim/plugged
+" - Avoid using standard Vim directory names like 'plugin'
+call plug#begin('~/.vim/plugged')
+
+" On-demand loading
+Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
+Plug 'vim-syntastic/syntastic'
+Plug 'Shougo/vimproc.vim', {'do' : 'make'}
+Plug 'eagletmt/ghcmod-vim'
+Plug 'kien/ctrlp.vim'
+" Initialize plugin system
+call plug#end()
+
+
+" Haskell VIM Configuration adjusted from the one
+" Stephen Diehl posted in his blog: http://www.stephendiehl.com/posts/vim_2016.html
+" Extended with syntax highlighting of my choice when using the Haskell Syntax
+" file
+syntax on
+filetype plugin indent on
+
+set nocompatible
+set number
+set nowrap
+set showmode
+set tw=80
+set smartcase
+set smarttab
+set smartindent
+set autoindent
+set softtabstop=2
+set shiftwidth=2
+set expandtab
+set incsearch
+set mouse=a
+set history=1000
+set clipboard=unnamedplus,autoselect
+
+set backspace=indent,eol,start
+
+" syntax highlighting:
+" specified using the hooks obtained from the haskell vim syntax file
+" The colors are terminal color numbers
+hi hsComment ctermfg=039
+hi Operator ctermfg=220
+hi Function ctermfg=220
+hi Include ctermfg=199
+hi Number ctermfg=199
+hi hsConditional ctermfg=34
+hi hsStatement ctermfg=34
+
+" styling of NerdTree (your left hand side project explorer)
+hi Directory ctermfg=220
+
+" tab completion support
+set completeopt=menuone,menu,longest
+
+" ignore some unimporant filetypes for display
+set wildignore+=*\\tmp\\*,*.swp,*.swo,*.zip,.git,.cabal-sandbox
+set wildmode=longest,list,full
+set wildmenu
+set completeopt+=longest
+
+set t_Co=256
+
+" output window on the bottom of your editor
+set cmdheight=1
+
+
+" the standard leader key is \
+" so pressing \ n would bring up your standard directory explorer
+" mapping explorer to \ d for [directory]
+map <Leader>d :NERDTreeToggle<CR>
+" automatically start directory explorer on start of vim
+autocmd VimEnter * NERDTree
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+
+"syntastic
+map <Leader>l :SyntasticToggleMode<CR>
+
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 0
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+
+" your source file search plugin
+" so with pressing \ f you can search in all files in your directory inside your
+" editor
+map <silent> <Leader>f :CtrlP()<CR>
+noremap <leader>f<space> :CtrlPBuffer<cr>
+let g:ctrlp_custom_ignore = '\v[\/]dist$'
+
+
+" ===================================================================================
+" Starting here are parts/functions of your IDE  that you may want to change or 
+" where you may want to add more commands and shortcuts.
+" ===================================================================================
+
+autocmd BufWinLeave *.*  mkview
+" when starting vim and dir explorer, set cursor in editor not directory explorer
+autocmd BufWinEnter *.*  silent loadview | call feedkeys("\<C-w>w")
+" on loading a file replace all \ with lambdas
+autocmd BufRead     *.hs :silent! %s/\\/λ/ge
+" before saving a file replace all lambdas with \
+autocmd BufWritePre *.hs :silent! %s/λ/\\/ge
+" after saving a file replace all \ with lambdas
+autocmd BufWritePost *.hs :silent! %s/\\/λ/ge
+
+" why? because its fun and cool to use actual lambdas for writing a lambda ;)
+
+" helper function to execute commands without printing to the editor console
+:command! -nargs=1 Silent execute ':silent !'.<q-args> | execute ':redraw!'
+
+" TODO: replace path with path to sed
+function! RunCmd(cmd, pane)
+  execute ":silent !PATH_TO_FOLDER/ideCommands ".a:cmd." ".a:pane
+  execute ":redraw!"
+endfunction
+
+" perform stack build when pressing \ b
+" :Silent is for not showing any output
+" tmux is the pane manager
+" send-keys is for sending a string to another pane from your editor pane
+" hide.1 is the shell (the by default lower left pane of your IDE)
+" "stack build" is the command to send to this pane
+" ENTER is to send the enter key to the pane (to actually invoke the command
+" 
+" tmux send-keys -t hide.1 "stack build" ENTER
+" [old]: map <leader>b :Silent tmux send-keys -t hide.1 "stack build" ENTER <CR>
+" [old]: map <leader>b execute ":Silent tmux send-keys -t hide.1 ". RunCmd("build"). " ENTER" <CR>
+map <leader>b :call RunCmd("build", 1) <CR>
+
+" perform a reaload in your repl in the lower right pane
+" [old]: map <leader>r :Silent tmux send-keys -t hide.2 ":reload" ENTER <CR>
+map <leader>r :call RunCmd("reload", 2) <CR>

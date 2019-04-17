@@ -1,0 +1,240 @@
+#!/bin/bash
+# Haskide only loads your IDE.
+# This is not your actual IDE and editor, just a wrapper for starting it.
+# ======================== HELPER FUNCTIONS =============================
+  print_usage() {
+      echo "Usage: haskide (open|close|ls) [-r] path_to_folder_or_file [instance_name]"
+      echo " open: opens the IDE with the path_to_folder_or_file"
+      echo " instance_name: adds an optional name for the IDE instance on open or closes the IDE instance with that name on close"
+      echo " -r: reload/reset the settings for the ide for the project located at path_to_folder_or_file"
+      echo "\nExamples:"
+      echo -e "haskide open ~/path/to/project                 \e[36m#Opens the IDE\e[0m"
+      echo -e "haskide open ~/path/to/project2 project2Name   \e[36m#Opens the IDE with a name\e[0m"
+      echo -e "haskide close project2Name                     \e[36m#Closes the IDE with the name\e[0m"
+      echo -e "haskide close                                  \e[36m#Closes all instances of the IDE\e[0m"
+      echo -e "haskide open -r ~/path/to/project              \e[36m#Resets the IDE-Settings to the default\e[0m"
+      echo -e "haskide ls                                     \e[36m#Lists the currently opened IDE instances with their names\e[0m"
+    }
+
+    # ensures that the custom vimrc file is available in the directory that is
+    # opened; if not, it will copy the file from the installation directory
+    # that is specified before calling the function
+    ensureHvim() { #dir
+      if ! [ -f "${1}.vimrc" ]; then
+        #copy from global config
+        if [ -f $install_dir/vimrc ]; then
+          yes | cp $install_dir/vimrc $1.vimrc
+          sed -i "s#PATH_TO_FOLDER#$1#g" $1.vimrc
+        else
+          echo "cannot find global config $install_dir/vimrc"
+          exit 1
+        fi
+      fi
+    }
+
+    # analogue to the above for the custom .ghci file
+    ensureGhci() { #dir
+      if ! [ -f "${1}.ghci" ]; then
+        #copy from global config
+        if [ -f $install_dir/ghci ]; then
+          yes | cp $install_dir/ghci $1.ghci
+        else
+          echo "cannot find global config $install_dir/ghci"
+          exit 1
+        fi
+      fi
+    }
+
+    # analogue to the above for the custom hide.yml file
+    ensureHide() { #dir
+      if ! [ -f "${1}hide.yml" ]; then
+        #copy from global config and replace
+        if [ -f $install_dir/hide.yml ]; then
+          yes | cp $install_dir/hide.yml $1hide.yml
+          sed -i "s#ROOT#$1#g" $1hide.yml
+        else
+          echo "cannot find global config $install_dir/hide.yml"
+          exit 1
+        fi
+      fi
+    }
+    
+    # analogue to the above for the custom .tmux.hs.conf
+    ensureTmux() { #dir
+      if ! [ -f "${1}.tmux.hs.conf" ]; then
+        #copy from global config
+        if [ -f $install_dir/tmux.hs.conf ]; then
+          yes | cp $install_dir/tmux.hs.conf $1.tmux.hs.conf
+        else
+          echo "cannot find global config $installd_dir/tmux.hs.conf"
+          exit 1
+        fi
+      fi
+    }
+    
+    # analogue to the above for the custom commands.conf
+    ensureCommands() { #dir
+      if ! [ -f "$1commands.conf" ]; then
+        #copy from global config
+        if [ -f $install_dir/commands.conf ]; then
+          yes | cp $install_dir/commands.conf $1commands.conf
+        else
+          echo "cannot find global config $install_dir/commands.conf"
+          exit 1
+        fi
+      fi
+    }
+
+    # analogue to the above for the custom ideCommands
+    ensureCommandsSh() { #dir
+      if ! [ -f "$1ideCommands" ]; then
+        #copy from global config
+        if [ -f $install_dir/ideCommands ]; then
+          yes | cp $install_dir/ideCommands $1ideCommands
+        else
+          echo "cannot find global config $installd_dir/ideCommands"
+          exit 1
+        fi
+      fi
+    }
+
+  # analogue to the above for the ivim program; 
+  # however, ivim should be in the path anyway, so this function is not called
+  # right now
+  ensureIvim() { #dir
+    if ! [ -f "$1/ivim" ]; then
+      #copy from global config
+      if [ -f $install_dir/ivim.sh ]; then
+        yes | cp $install_dir/ivim.sh $1ivim.sh
+      else
+        echo "cannot find global config $installd_dir/ivim.sh"
+        exit 1
+      fi
+    fi 
+  }
+# ===================== /helper functions =============================
+
+
+debug_flag=false            # produce debug output when run?
+reload_flag=false           # reload the default configurations for the IDE for this project
+fod=""                      # the file or directory to open
+install_dir="$HOME/.hide"   # the installation directory of HaskIDE
+cmd=""                      # the user command to execute
+instName=""                 # the name for the instance to open, attach or close
+
+# ================= get flags ===================
+params=$#
+let "i=1"
+while (("$i"<="$#")); do 
+  case "${!i}" in
+    -r) reload_flag=true && let "params=params-1";;
+    -d) debug_flag=true && let "params=params-1";;
+  esac
+  let "i=i+1"
+done
+
+# =========== get install dir ===================
+$debug_flag && echo [debug] install_dir: $install_dir
+if [ -d $install_dir ]; then
+  install_dir=`realpath $install_dir`
+else
+  install_dir=$(head -n 1 $HOME/.hiderc)
+fi
+# =============== get params ====================
+
+let "i=1"
+while [[ -z "$cmd" || $cmd =~ -.* ]] && (("$i"<="$#")); do
+  cmd=${!i}
+  let "i=i+1"
+done
+
+while  [[ -z "$fod" || $fod =~ -.* ]] && (("$i"<="$#")); do
+  fod=${!i}
+  let "i=i+1"
+done
+
+while  [[ -z "$instName" || $instName =~ -.* ]] && (("$i"<="$#")); do
+  instName=${!i}
+  let "i=i+1"
+done
+
+
+# =============== start IDE =====================
+exec=false                                # if anything was actually done; otherwise display usage
+
+if (( params>=2 )); then
+  file=$(readlink -f $fod)                # the file to open within the directory
+  fod=$(readlink -f $fod)                 # the directory to open
+  [[ ! $fod =~ .*/$ ]] && fod=$fod/
+
+  hide="hide.yml"
+  f_tmux=".tmux.hs.conf"
+  f_vim=".vimrc"
+  f_ghc=".ghci"
+  
+  if $reload_flag && [ -d $fod ]; then
+    # delete existing configs to reset to default if it is a directory else ignore
+    rm $fod$hide $fod$f_tmux $fod$f_vim $fod$f_ghc
+  fi
+  
+  # check if the user wants to open an existing location
+  if [[ "$cmd" == "open" ]] && ! [[ -z "$fod" ]]; then
+    # open the IDE at the given existing location
+    exec=true  
+    ensureHide $fod
+    
+    echo opening file $file
+    # replacing CMD with the start command for the editor in the tmux project
+    # file for the project/folder to open
+    # this has to be done in order to "save" the standard initial view for a project
+    sed -i "s#CMD#vim -u $fod.vimrc $file#g" $fod$hide
+  
+    # ensure that all config files are at hand
+    ensureHvim $fod
+    ensureGhci $fod
+    ensureTmux $fod
+    ensureCommands $fod
+    ensureCommandsSh $fod
+    #ensureIvim $fod
+    if [[ -z "$instName" ]]; then
+      # start the IDE with the standard instance name "hide"
+      tmuxinator start hide -p $fod$hide
+    else
+      # start the DIE window with the user defined instance name.
+      # this way, the user can open several IDE windows of multiple projects at
+      # once without losing track what project is open in what tmux IDE window.
+      # tmux ls lists all the available windows.
+      tmuxinator start hide -p $fod$hide -n $instName
+    fi
+  fi
+fi
+
+
+if (( params>=1 )); then
+  # standard name for closing the IDE if none was specified
+  [[ -z "$instName" ]] && instName="hide"
+
+  # list all available instances of the IDE
+  if [[ "$cmd" == "ls" ]]; then
+    tmux ls
+    exit 0
+  fi
+
+  if [[ "$cmd" == "close" ]]; then
+    exec=true
+    ret=$(tmux kill-window -t $instName)
+    # check if the instance actually existed, otherwise list them
+    if [[ -z "$ret" ]]; then
+      echo ide closed
+    else
+      echo only unnamed instances can be closed without a name
+      echo these instances are available
+      tmux ls
+    fi
+  fi
+fi
+
+# if the command was not found, print the proper usage.
+if [ "$exec" = false ]; then
+  print_usage
+fi

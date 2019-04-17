@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# VIM wrapper that opens vim with the first .vimrc 
+# that is found on the way from the current directory up to the home directory
+# (where the standard .vimrc file would be used)
+
+file=$1
+vimrc=".vimrc"
+currentDir=`realpath .` #$(dirname $(readlink -f $0))
+maxDir=$(readlink -f ~)
+vimFile=""
+
+while [[ ! "$currentDir" == "$maxDir" ]]; do 
+  curFile="$currentDir/$vimrc"
+  if [ -e "$curFile" ]; then
+    vimFile=$curFile
+    break
+  fi
+  currentDir=$(dirname $currentDir)
+done
+
+# starts vim with the specified .vimrc.
+# this way the haskell specific settings in vimrc are only used when you 
+# start your editor with ivim but not otherwise.
+# This keeps your vim experience clean for other uses
+echo "Using file $vimFile"
+vim -u $vimFile $file

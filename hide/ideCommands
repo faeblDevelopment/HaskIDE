@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#echo `realpath \`dirname $0 \``
+#exit 0
+
+found=false
+pane=""
+cmd=""
+params=$#
+let "i=1"
+while [[ -z "$cmd" ]] && (("$i"<="$#")); do
+  cmd=${!i}
+  let "i=i+1"
+done
+
+while [[ -z "$pane" ]] && (("$i"<="$#")); do
+  pane="${!i}"
+  let "i=i+1"
+done
+
+commPath=`realpath \`dirname $0 \``
+
+while read l; do
+  if [[ $l =~ $cmd ]]; then
+    found=true
+    cmd="${l#*=}"
+  fi
+done < "$commPath/commands.conf"
+
+if $found && ! [[ -z "$pane" ]]; then
+  # echo $cmd
+  tmux send-keys -t hide.$pane "$cmd" ENTER
+fi
