@@ -48,7 +48,7 @@ If you have a customized setup (if you have, you will probably know) just change
 ## Installation (Windows)
 under construction
 
-##Installation (Mac)
+## Installation (Mac)
 being tested
 
 ## Under the hood
