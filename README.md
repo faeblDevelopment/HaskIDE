@@ -26,6 +26,10 @@ HaskIDE includes
 HaskIDE also saves your settings per project, which makes it easy to have custom build commands/IDE layouts for different projects.
 As all the source code is bash and vim script (and also well commented) so you should be able to tinker with it and add new features easily.
 
+
+## Pre Installation
+Before you run the install script be sure to take a look at what is going on inside. A few environment variables and other stuff will be configured. Be sure that you actually want to configure your system that way! You are soley responsible for messing with your system ;)
+
 ## Installation (Linux)
 Pull the git repo and run 
 ```sh
